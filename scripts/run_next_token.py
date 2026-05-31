@@ -24,6 +24,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt", default=DEFAULT_PROMPT)
     parser.add_argument("--num-predict", type=int, default=16)
     parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Send raw=true to Ollama so the model receives the prompt without the model chat template.",
+    )
     parser.add_argument("--output-dir", default="results/000-next-token")
     return parser.parse_args()
 
@@ -34,6 +39,7 @@ def stream_generate(
     prompt: str,
     options: dict[str, Any],
     ollama_url: str,
+    raw: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], float]:
     payload = {
         "model": model,
@@ -41,6 +47,8 @@ def stream_generate(
         "stream": True,
         "options": options,
     }
+    if raw:
+        payload["raw"] = True
     request = urllib.request.Request(
         f"{ollama_url.rstrip('/')}/api/generate",
         data=json.dumps(payload).encode("utf-8"),
@@ -87,10 +95,14 @@ def main() -> None:
         prompt=args.prompt,
         options=options,
         ollama_url=args.ollama_url,
+        raw=args.raw,
     )
     response_text = "".join(chunk["text"] for chunk in chunks)
+    variant = "raw" if args.raw else "template_chat"
     record = {
         "experiment": "000-next-token",
+        "variant": variant,
+        "raw": args.raw,
         "run_id": run_id,
         "model": args.model,
         "prompt": args.prompt,

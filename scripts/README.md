@@ -25,6 +25,8 @@ Los scripts usan solo la biblioteca estándar de Python y llaman a:
 http://localhost:11434/api/generate
 ```
 
+Las utilidades de inspección llaman al binario local `ollama`.
+
 ## Cliente común
 
 `ollama_client.py` contiene funciones compartidas para:
@@ -52,7 +54,36 @@ python3 scripts/run_next_token.py \
   --temperature 0.2
 ```
 
-Este experimento usa streaming para observar la generación incremental. Los fragmentos observados no tienen por qué coincidir visualmente con tokens completos.
+Modo raw:
+
+```bash
+python3 scripts/run_next_token.py \
+  --model llama3.2:3b \
+  --prompt "El cielo es" \
+  --num-predict 12 \
+  --temperature 0.2 \
+  --raw
+```
+
+Este experimento usa streaming para observar la generación incremental. Los fragmentos observados no tienen por qué coincidir visualmente con tokens completos. Sin `--raw`, Ollama aplica la plantilla normal del modelo; con `--raw`, el script envía `"raw": true` para estudiar la continuación textual sin template de chat.
+
+### 000-template-vs-raw
+
+```bash
+python3 scripts/run_template_vs_raw.py
+```
+
+Opciones principales:
+
+```bash
+python3 scripts/run_template_vs_raw.py \
+  --models qwen2.5-coder:3b llama3.2:3b \
+  --prompt "El cielo es" \
+  --num-predict 24 \
+  --temperature 0.2
+```
+
+Este experimento ejecuta cada modelo en modo normal y en modo raw, y registra `variant`, `raw`, `eval_count`, respuesta final y métricas de Ollama.
 
 ### 001-temperature
 
@@ -105,6 +136,26 @@ python3 scripts/run_context.py \
 ```
 
 Este experimento no implementa RAG, embeddings ni agentes: solo incluye hechos dentro del prompt.
+
+## Inspección de modelos
+
+Guardar información de `ollama show <modelo>`:
+
+```bash
+python3 scripts/show_model_info.py qwen2.5-coder:3b llama3.2:3b
+```
+
+Exportar Modelfiles:
+
+```bash
+python3 scripts/export_modelfile.py qwen2.5-coder:3b llama3.2:3b
+```
+
+Las salidas se guardan en:
+
+```text
+references/models/
+```
 
 ## Salidas
 

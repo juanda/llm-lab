@@ -26,6 +26,7 @@ def generate(
     prompt: str,
     options: dict[str, Any] | None = None,
     system: str | None = None,
+    raw: bool = False,
     ollama_url: str = DEFAULT_OLLAMA_URL,
 ) -> OllamaResult:
     """Call Ollama /api/generate with stream disabled."""
@@ -38,6 +39,8 @@ def generate(
         payload["options"] = options
     if system:
         payload["system"] = system
+    if raw:
+        payload["raw"] = True
 
     request = urllib.request.Request(
         f"{ollama_url.rstrip('/')}/api/generate",
