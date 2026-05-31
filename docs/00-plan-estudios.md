@@ -28,3 +28,4 @@ Cada módulo debe contener:
 ## Módulo desarrollado
 
 - [00-preparacion-laboratorio](modules/00-preparacion-laboratorio.md)
+- [01-anatomia-llm](modules/01-anatomia-llm.md)

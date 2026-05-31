@@ -118,6 +118,29 @@ python3 scripts/run_performance.py \
 
 ## Experimentos de módulos posteriores
 
+### 001-anatomia-llm
+
+Inventario observable de modelos:
+
+```bash
+python3 scripts/model_inventory.py \
+  --models qwen2.5-coder:0.5b qwen2.5-coder:3b llama3.2:3b
+```
+
+Comparación de modelos con el mismo prompt:
+
+```bash
+python3 scripts/compare_models.py \
+  --models qwen2.5-coder:0.5b qwen2.5-coder:3b llama3.2:3b \
+  --prompt "Explica en una frase qué es un token en un LLM."
+```
+
+Los resultados se guardan en:
+
+```text
+results/001-anatomia-llm/
+```
+
 ### 003-context
 
 Este experimento pertenece al módulo 3, Contexto y Memoria. Se documenta aquí porque ya existe un script asociado, pero no debe tratarse como parte del módulo 0.

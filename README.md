@@ -25,3 +25,8 @@ Laboratorio experimental para comprender los LLM mediante experimentación prác
 - adrs/
 - scripts/
 - references/
+
+## Módulos disponibles
+
+- [00 - Preparación del laboratorio](docs/modules/00-preparacion-laboratorio.md)
+- [01 - Anatomía de un LLM](docs/modules/01-anatomia-llm.md)
