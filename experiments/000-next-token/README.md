@@ -6,11 +6,19 @@
 
 ¿Por qué dos modelos generan continuaciones radicalmente distintas para el mismo prompt visible?
 
+¿Por qué el mismo modelo parece comportarse como modelos distintos cuando cambia el contexto?
+
+¿Hasta qué punto cambia el comportamiento al modificar únicamente la secuencia de entrada?
+
 ## Hipótesis
 
 Un LLM genera texto prediciendo sucesivamente el siguiente token. El texto final emerge de una cadena de decisiones locales de generación.
 
 Dos modelos pueden generar secuencias completamente distintas ante el mismo prompt visible porque el prompt real recibido por el modelo no es idéntico.
+
+El mismo modelo puede producir comportamientos distintos cuando cambia el contexto real que recibe, aunque no cambien sus pesos ni el algoritmo de inferencia.
+
+Para el Transformer no existen modos internos como chat o raw. Esos nombres describen cómo Ollama construye la secuencia de tokens de entrada.
 
 ## Conceptos
 
@@ -41,6 +49,8 @@ Por eso este experimento no debe interpretarse como una observación aislada del
 
 ```text
 Modelo
++
+Prompt
 +
 Template
 +
@@ -76,6 +86,49 @@ Ollama permite omitir la plantilla de chat en `/api/generate` usando:
 ```
 
 En modo raw, el prompt se envía como texto directo para estudiar la continuación textual sin template de chat. Siguen influyendo el tokenizer, el runtime, los parámetros, la cuantización y el comportamiento aprendido del modelo.
+
+La palabra "modo" no significa que el modelo active un mecanismo interno diferente. El runtime construye una secuencia de tokens diferente y el mismo modelo continúa esa secuencia.
+
+### El mismo modelo puede comportarse como modelos distintos
+
+Hallazgo experimental:
+
+```text
+Mismo modelo
++
+Secuencia de entrada diferente
+=
+Comportamiento diferente
+```
+
+Con `qwen2.5-coder:3b` y el prompt visible:
+
+```text
+El cielo es
+```
+
+se observaron dos comportamientos distintos:
+
+- en modo normal, el modelo respondió como un asistente conversacional;
+- en modo raw, el modelo completó la frase como continuación textual.
+
+El modelo no cambió. Los pesos no cambiaron. El algoritmo de inferencia no cambió. Lo que cambió fue el contexto real recibido por el modelo.
+
+Para el Transformer, ambos casos se reducen al mismo proceso:
+
+```text
+Secuencia de tokens
+↓
+Predicción del siguiente token
+↓
+Nueva secuencia de tokens
+```
+
+Conclusión operativa:
+
+```text
+Cambiar el contexto equivale a cambiar el comportamiento.
+```
 
 ## Variables
 
@@ -197,7 +250,28 @@ Anotar aquí observaciones después de ejecutar el experimento:
 - ¿Cuántos tokens generados reportó Ollama?
 - ¿La respuesta parece una continuación textual o una respuesta de asistente?
 - ¿Qué cambia al comparar el mismo modelo en modo normal y raw?
+- ¿Qué secuencia real de entrada pudo haber construido Ollama en cada caso?
 - ¿Qué cambia al comparar Qwen2.5-Coder y Llama 3.2?
+
+### Observación experimental registrada
+
+Caso A:
+
+- Modelo: `qwen2.5-coder:3b`
+- Prompt visible: `El cielo es`
+- Modo: normal, con chat template
+- Resultado cualitativo: respuesta de asistente conversacional.
+
+Caso B:
+
+- Modelo: `qwen2.5-coder:3b`
+- Prompt visible: `El cielo es`
+- Modo: raw, con `"raw": true`
+- Resultado cualitativo: continuación textual de la frase.
+
+Interpretación: el modelo sabe completar texto, pero el modo normal cambia el contexto real y activa un comportamiento de asistente. La comparación demuestra que no basta con registrar el modelo y el prompt visible.
+
+Interpretación refinada: no existen dos modelos ni dos mecanismos internos. Existen dos secuencias de entrada distintas. En raw, la secuencia se aproxima a `El cielo es`. En chat, Ollama construye una secuencia con roles, template y posible system prompt antes de pedir al mismo modelo que prediga el siguiente token.
 
 ## Conclusiones
 
@@ -212,6 +286,8 @@ Estamos observando:
 
 Modelo
 +
+Prompt
++
 Template
 +
 System Prompt
@@ -222,3 +298,14 @@ Parámetros
 ```
 
 Esta idea debe reutilizarse al interpretar resultados en módulos posteriores.
+
+Lecciones aprendidas:
+
+- Un LLM siempre predice el siguiente token.
+- El mismo modelo puede parecer comportarse como modelos distintos si cambia el contexto.
+- Para el Transformer no existen modos internos de chat o raw: solo existen secuencias de tokens.
+- El experimento demuestra que el comportamiento de un modelo depende tanto de los pesos como de la forma en que se construye el contexto de entrada.
+- El modo raw aproxima mejor una secuencia de continuación textual directa.
+- El modo chat observa el sistema completo: modelo, prompt, template, system prompt, runtime y parámetros.
+- Todo experimento debe documentar esos elementos antes de atribuir una diferencia a los pesos del modelo.
+- Cuando observamos el comportamiento de un LLM, debemos analizar la secuencia real de tokens que recibe el modelo y no únicamente el prompt visible.

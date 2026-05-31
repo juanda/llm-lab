@@ -144,6 +144,134 @@ Prompt real evaluado por el modelo
 Tokens generados
 ```
 
+### El mismo modelo puede comportarse como modelos distintos
+
+Una observación central del módulo 0 es que el comportamiento de un LLM no depende únicamente de los pesos del modelo. También depende del contexto que recibe.
+
+Principio:
+
+```text
+Mismo modelo
++
+Contexto diferente
+=
+Comportamiento diferente
+```
+
+En el experimento `000-next-token`, el modelo `qwen2.5-coder:3b` se ejecutó con el mismo prompt visible:
+
+```text
+El cielo es
+```
+
+En modo normal, Ollama aplicó la plantilla de chat del modelo y la salida observada fue una respuesta de asistente conversacional. En modo raw, usando:
+
+```json
+{
+  "raw": true
+}
+```
+
+el modelo completó la frase como continuación textual.
+
+Esta observación no implica que el modelo haya cambiado. En ambos casos:
+
+- el Transformer es el mismo;
+- los pesos son los mismos;
+- el algoritmo de inferencia es el mismo;
+- el runtime sigue siendo Ollama;
+- el prompt visible es el mismo.
+
+Lo que cambia es la entrada efectiva: el contexto real recibido por el modelo.
+
+Conclusión experimental:
+
+```text
+Cambiar el contexto equivale a cambiar el comportamiento.
+```
+
+Esta idea será recurrente durante todo el laboratorio. Aparecerá de nuevo al estudiar prompt engineering, ventana de contexto, instruct tuning, RLHF, tool calling y agentes.
+
+> PRINCIPIO FUNDAMENTAL DEL LABORATORIO
+>
+> Un LLM siempre predice el siguiente token.
+>
+> Sin embargo, pequeños cambios en el contexto pueden producir comportamientos aparentemente radicalmente distintos.
+>
+> Por ello, comprender el contexto es tan importante como comprender el propio modelo.
+
+### No existen modos dentro del modelo
+
+Cuando hablamos de modo chat o modo raw estamos describiendo cómo el runtime prepara la entrada. No estamos describiendo modos internos del Transformer.
+
+Para el Transformer no existen conceptos como:
+
+- chat mode;
+- raw mode;
+- RAG mode;
+- agent mode;
+- tool mode.
+
+Internamente solo existe:
+
+```text
+Secuencia de tokens
+↓
+Predicción del siguiente token
+↓
+Nueva secuencia de tokens
+```
+
+El modelo no sabe que está en un "modo" especial. Recibe una secuencia de tokens y calcula probabilidades para el siguiente token. Si la secuencia tiene forma de conversación, continuación textual, llamada a herramienta o contexto recuperado, eso es una decisión del sistema que construyó la entrada.
+
+Ejemplo conceptual:
+
+```text
+Modo raw
+El cielo es
+```
+
+```text
+Modo chat
+system:
+You are a helpful assistant
+
+user:
+El cielo es
+
+assistant:
+```
+
+El modelo, los pesos, la arquitectura y el algoritmo de inferencia pueden ser exactamente los mismos. Lo que cambia es la secuencia de tokens que llega al modelo.
+
+> PRINCIPIO FUNDAMENTAL DEL LABORATORIO
+>
+> Para un LLM no existen modos de funcionamiento.
+>
+> Solo existen secuencias de tokens.
+>
+> Lo que llamamos:
+>
+> - chat
+> - raw
+> - tool calling
+> - RAG
+> - agentes
+>
+> son distintas formas de construir la secuencia de tokens que recibe el modelo.
+
+Principio experimental:
+
+```text
+Mismo modelo
++
+Secuencia de entrada diferente
+=
+Comportamiento diferente
+```
+
+Los resultados observados con `qwen2.5-coder:3b` y `llama3.2:3b` muestran esta diferencia. En modo raw, el prompt visible se aproxima más a una continuación textual directa. En modo chat, Ollama construye una secuencia con plantilla, roles y posibles instrucciones de sistema. El comportamiento cambia porque la entrada cambia.
+
 ### Chat Template
 
 Una plantilla de chat es una regla de serialización que transforma una conversación estructurada en una secuencia textual y de tokens especiales compatible con un modelo concreto.
@@ -288,6 +416,8 @@ En modo raw, el prompt enviado a `/api/generate` se trata como texto de entrada 
 
 El modo raw no elimina todos los factores experimentales: siguen existiendo tokenizer, runtime, parámetros de generación, cuantización y comportamiento aprendido del modelo. Su utilidad en este módulo es aislar la diferencia entre generación con template y generación sin template de chat.
 
+La palabra "modo" aquí es una convención de Ollama y del laboratorio. No significa que el Transformer active una ruta interna distinta. Significa que el runtime construye una secuencia de entrada distinta.
+
 Comparación:
 
 ```text
@@ -311,6 +441,20 @@ Cuándo no usar modo raw como sustituto de chat:
 - cuando se evalúa comportamiento de asistente;
 - cuando el modelo fue entrenado principalmente para seguir formatos instruct;
 - cuando se necesitan roles, herramientas o turnos estructurados.
+
+### Implicaciones futuras
+
+Este principio se retomará en módulos posteriores porque muchas técnicas no modifican inicialmente los pesos del modelo, sino el contexto que recibe:
+
+- Prompt Engineering: cambia instrucciones, ejemplos y formato.
+- Contexto y Memoria: cambia la información disponible en la ventana de contexto.
+- Instruct Tuning: estudia por qué ciertos formatos conversacionales fueron aprendidos durante entrenamiento.
+- RLHF: estudia cómo el alineamiento afecta las continuaciones preferidas.
+- Tool Calling: representa herramientas y llamadas como secuencias estructuradas.
+- RAG: añade información recuperada al contexto.
+- Agentes: organizan objetivos, memoria, herramientas y pasos como contexto para el modelo.
+
+En el módulo 0 no se estudiarán todavía esas técnicas. Solo se fija el principio metodológico: para interpretar una salida, hay que analizar la secuencia real que recibió el modelo.
 
 ### Parámetros de generación
 
@@ -356,6 +500,8 @@ Un experimento reproducible debe declarar:
 3. Si se mantiene fijo el modelo y aumenta `num_predict`, aumentará el tiempo total de generación.
 4. Las métricas de rendimiento solo son comparables cuando modelo, runtime, hardware, parámetros y carga del sistema son equivalentes.
 5. Dos modelos pueden generar secuencias completamente distintas ante el mismo prompt visible porque el prompt real recibido por el modelo no es idéntico.
+6. El mismo modelo puede producir comportamientos distintos cuando cambia el contexto real que recibe, aunque no cambien sus pesos ni el algoritmo de inferencia.
+7. Si el runtime construye secuencias de tokens distintas, el mismo modelo puede mostrar comportamientos aparentemente distintos sin que exista un modo interno diferente.
 
 ## Experimentos
 
@@ -538,12 +684,47 @@ Durante la ejecución se deben anotar observaciones como:
 - si el sistema estaba ejecutando otras tareas pesadas;
 - si la salida en streaming llega en fragmentos que no coinciden visualmente con palabras completas.
 - si una diferencia parece explicarse por template, system prompt, modo raw, alineamiento o comportamiento instruct.
+- si el mismo modelo cambia de comportamiento al pasar de modo chat a modo raw.
 
 Las observaciones deben quedar en los `README.md` de cada experimento o junto a los archivos generados en `results/`.
 
 ## Conclusiones
 
 Este módulo deja el laboratorio listo para experimentar con LLMs locales de forma verificable. La conclusión principal no debe ser que un modelo es mejor o peor en abstracto, sino que bajo unas condiciones concretas se observaron determinados comportamientos medibles.
+
+Conclusión fundamental:
+
+```text
+Cambiar el contexto equivale a cambiar el comportamiento.
+```
+
+Conclusión metodológica:
+
+```text
+Cuando observamos el comportamiento de un LLM,
+debemos analizar siempre la secuencia real de tokens
+que recibe el modelo y no únicamente el prompt visible.
+```
+
+Por tanto, cada experimento debe documentar como mínimo:
+
+```text
+Modelo
++
+Prompt
++
+Template
++
+System Prompt
++
+Runtime
++
+Parámetros
+```
+
+Cuando existan stop tokens, modo raw, cuantización, hardware o versión concreta de Ollama relevantes para la interpretación, también deben registrarse. Esta nota metodológica evita atribuir al modelo lo que en realidad pertenece al sistema completo de inferencia.
+
+Los nombres `chat`, `raw`, `tool calling`, `RAG` o `agentes` son nombres de configuraciones o arquitecturas externas al modelo. Para el Transformer, todos se reducen a una secuencia de tokens de entrada.
 
 Antes de avanzar a módulos posteriores, el estudiante debe ser capaz de:
 
@@ -556,6 +737,8 @@ Antes de avanzar a módulos posteriores, el estudiante debe ser capaz de:
 - distinguir entre hipótesis, medición, observación y conclusión;
 - evitar extrapolar resultados fuera de las condiciones experimentales.
 - explicar por qué el prompt visible no siempre coincide con el prompt real.
+- explicar por qué el mismo modelo puede comportarse como modelos distintos si cambia el contexto.
+- explicar que los "modos" pertenecen al runtime o al sistema, no al Transformer.
 
 ## Preguntas fundamentales del laboratorio
 
@@ -572,5 +755,7 @@ Estas preguntas se responderán progresivamente durante el curso:
 - ¿Cómo funciona RAG?
 - ¿Cómo se entrenan los modelos?
 - ¿Por qué dos modelos generan continuaciones radicalmente distintas para el mismo prompt?
+- ¿Por qué el mismo modelo parece comportarse como modelos distintos cuando cambia el contexto?
+- ¿Hasta qué punto es posible cambiar el comportamiento de un modelo sin modificar sus pesos, únicamente modificando la secuencia de tokens de entrada?
 
-Para responder a esta última pregunta se investigarán system prompts, templates, modo raw, alineamiento y comportamiento instruct.
+Estas preguntas se investigarán progresivamente mediante system prompts, templates, modo raw, alineamiento y comportamiento instruct. En módulos posteriores se retomarán al estudiar prompt engineering, contexto, instruct tuning, RLHF, tool calling, RAG y agentes.
