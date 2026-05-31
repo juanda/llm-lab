@@ -24,3 +24,7 @@ Cada módulo debe contener:
 - Experimentos
 - Observaciones
 - Conclusiones
+
+## Módulo desarrollado
+
+- [00-preparacion-laboratorio](modules/00-preparacion-laboratorio.md)
