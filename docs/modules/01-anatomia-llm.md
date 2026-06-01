@@ -216,6 +216,83 @@ Observación asociada: `qwen2.5-coder:3b` y `llama3.2:3b` pueden tener dimension
 
 Experimento asociado: `001B - Parámetros del modelo`.
 
+#### ¿Cómo se aprende un embedding?
+
+Los embeddings son parámetros entrenables. No los escribe una persona token por token ni aparecen ya definidos antes del entrenamiento.
+
+Al inicio del entrenamiento, la tabla de embeddings suele contener valores aleatorios o casi aleatorios. Cada token ya tiene una posición numérica inicial, pero esa posición todavía no es útil por sí misma.
+
+Durante el entrenamiento, el modelo intenta predecir tokens a partir de ejemplos de texto. Cuando se equivoca, se calcula un error. Ese error se propaga hacia atrás por la red mediante backpropagation y se usa para actualizar los pesos del modelo. En ese proceso, los embeddings se actualizan continuamente junto con los demás parámetros.
+
+Flujo conceptual:
+
+```text
+Texto de entrenamiento
+↓
+Predicción incorrecta
+↓
+Cálculo del error
+↓
+Backpropagation
+↓
+Actualización de pesos
+↓
+Actualización de embeddings
+```
+
+La idea central es:
+
+```text
+Los embeddings son pesos del modelo.
+```
+
+Por tanto, los embeddings se optimizan junto con el resto de pesos, igual que:
+
+- matrices de atención;
+- capas feed-forward;
+- capa de salida.
+
+Analogía intuitiva: al principio, los tokens están colocados en posiciones casi aleatorias. Tras millones de ejemplos, los vectores se desplazan gradualmente hasta posiciones que ayudan al modelo a cometer menos errores de predicción.
+
+> **Observación importante**
+>
+> Un embedding no es algo que el modelo consulta.
+>
+> Es algo que el entrenamiento ha ido moldeando gradualmente para reducir el error de predicción.
+
+Limitación experimental: en este módulo usamos modelos locales ya entrenados. Con `ollama show` podemos observar propiedades como `embedding length`, pero no las actualizaciones paso a paso de la tabla de embeddings. Para observar esas modificaciones hará falta un experimento de entrenamiento controlado en un módulo posterior.
+
+Pregunta pendiente:
+
+```text
+¿Cómo se calculan exactamente las modificaciones
+que se aplican a los embeddings durante el entrenamiento?
+```
+
+Esta cuestión se desarrollará en el futuro módulo sobre entrenamiento.
+
+#### Qué aprende realmente un embedding
+
+Un embedding no aprende una definición simbólica del token.
+
+Evitemos interpretar un vector como si contuviera una frase legible:
+
+```text
+perro = mamífero doméstico canino
+```
+
+Lo que aprende el embedding es una representación numérica útil para reducir el error de predicción del modelo en los ejemplos de entrenamiento.
+
+Tokens que aparecen en contextos similares pueden acabar con representaciones relacionadas. Esa relación puede ayudar al modelo a predecir mejor, pero no implica que siempre deban quedar "cerca" en un sentido geométrico simple ni que el vector contenga una explicación humana del token.
+
+> **ERROR FRECUENTE**
+>
+> Pensar que el embedding contiene una definición legible del token.
+>
+> **REALIDAD**
+>
+> El embedding es un vector numérico optimizado para ayudar al modelo a predecir correctamente.
+
 #### Qué NO es un embedding
 
 Un embedding no es una definición del token.
@@ -415,6 +492,7 @@ Estos errores conceptuales son comunes y deben evitarse desde este módulo:
 - pensar que un token equivale siempre a una palabra;
 - pensar que el modelo genera una respuesta completa de una sola vez;
 - pensar que un embedding es una definición simbólica;
+- pensar que un embedding es una entrada de diccionario que el modelo consulta;
 - pensar que el modelo siempre elige el token más probable;
 - pensar que chat y raw son modos internos del modelo;
 - pensar que los parámetros son conocimiento explícito almacenado como frases o hechos legibles;
@@ -428,7 +506,7 @@ Estos errores conceptuales son comunes y deben evitarse desde este módulo:
 | Token | Unidad discreta de texto usada por el tokenizer y el modelo; no equivale necesariamente a una palabra. |
 | Tokenizer | Componente que transforma texto en IDs de tokens y permite detokenizar la salida. |
 | Vocabulario | Conjunto de tokens que un modelo puede representar mediante su tokenizer. |
-| Embedding | Vector numérico aprendido asociado a un token. |
+| Embedding | Parámetro entrenable: vector numérico aprendido asociado a un token. |
 | Parámetro | Valor numérico aprendido durante entrenamiento, como pesos de embeddings, atención o redes internas. |
 | Transformer | Arquitectura neuronal que procesa secuencias mediante capas, atención y transformaciones vectoriales. |
 | Atención | Mecanismo matemático que relaciona posiciones de la secuencia para calcular representaciones útiles. |
@@ -442,9 +520,10 @@ Estos errores conceptuales son comunes y deben evitarse desde este módulo:
 2. El mismo texto visible puede producir conteos de tokens distintos según el modelo, el tokenizer y la plantilla aplicada por el runtime.
 3. Modelos de distinto tamaño o arquitectura pueden producir respuestas con diferencias observables en claridad, longitud, latencia y métricas de generación.
 4. `embedding length`, `context length`, cuantización y número de parámetros son propiedades observables del modelo local mediante Ollama.
-5. La generación autoregresiva puede observarse indirectamente mediante streaming, `eval_count` y respuestas parciales, aunque no se expongan logits ni tokens exactos.
-6. Cambios en sampling, como `temperature`, pueden cambiar el token seleccionado aunque los pesos, el prompt visible y el modelo no cambien.
-7. Usar `raw=true` puede aproximar mejor una continuación textual directa, pero no activa un modo interno distinto del Transformer.
+5. Los embeddings son parámetros aprendidos durante entrenamiento, no definiciones manuales ni entradas consultables de un diccionario interno.
+6. La generación autoregresiva puede observarse indirectamente mediante streaming, `eval_count` y respuestas parciales, aunque no se expongan logits ni tokens exactos.
+7. Cambios en sampling, como `temperature`, pueden cambiar el token seleccionado aunque los pesos, el prompt visible y el modelo no cambien.
+8. Usar `raw=true` puede aproximar mejor una continuación textual directa, pero no activa un modo interno distinto del Transformer.
 
 ## Experimentos
 
@@ -605,7 +684,8 @@ El módulo 1 debe dejar claras estas conclusiones:
 - el texto visible no entra directamente al Transformer como caracteres;
 - el tokenizer convierte texto en IDs;
 - los IDs seleccionan embeddings;
-- un embedding es un vector aprendido, no una definición simbólica;
+- un embedding es un parámetro entrenable, no una definición simbólica;
+- los embeddings son pesos del modelo y se actualizan durante entrenamiento para reducir el error de predicción;
 - el Transformer procesa vectores mediante capas, atención y feed-forward;
 - la salida inmediata del modelo son logits sobre el vocabulario;
 - el runtime convierte logits en probabilidades, aplica sampling, selecciona tokens y finalmente reconstruye texto;
