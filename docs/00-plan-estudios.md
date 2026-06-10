@@ -31,3 +31,5 @@ Cada módulo debe contener:
 - [01-anatomia-llm](modules/01-anatomia-llm.md)
 - [02-generacion](modules/02-generacion.md)
 - [03-contexto](modules/03-contexto.md)
+- [04-prompt-engineering](modules/04-prompt-engineering.md)
+- [05-razonamiento](modules/05-razonamiento.md)

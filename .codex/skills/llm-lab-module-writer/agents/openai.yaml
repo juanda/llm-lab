@@ -1,0 +1,4 @@
+interface:
+  display_name: "LLM Lab Module Writer"
+  short_description: "Develop course modules with experiments"
+  default_prompt: "Use $llm-lab-module-writer to expand the next LLM Lab module."

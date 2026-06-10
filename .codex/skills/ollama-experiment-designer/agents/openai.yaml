@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ollama Experiment Designer"
+  short_description: "Design reproducible local LLM experiments"
+  default_prompt: "Use $ollama-experiment-designer to add a reproducible Ollama experiment."

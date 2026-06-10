@@ -1,0 +1,4 @@
+interface:
+  display_name: "LLM Results Analyst"
+  short_description: "Analyze JSONL experiment results rigorously"
+  default_prompt: "Use $llm-results-analyst to summarize the latest experiment results."

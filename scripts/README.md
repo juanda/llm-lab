@@ -182,6 +182,52 @@ python3 scripts/run_context.py \
 
 Este experimento no implementa RAG, embeddings ni agentes: solo incluye hechos dentro del prompt.
 
+### 004-prompt-patterns
+
+Compara patrones de prompt sobre una misma tarea de clasificación.
+
+```bash
+python3 scripts/run_prompt_patterns.py --model llama3.2:3b
+```
+
+Opciones principales:
+
+```bash
+python3 scripts/run_prompt_patterns.py \
+  --model llama3.2:3b \
+  --repeat 2 \
+  --temperature 0.2
+```
+
+Los resultados se guardan en:
+
+```text
+results/004-prompt-patterns/
+```
+
+### 005-reasoning-tasks
+
+Compara patrones de prompt en tareas pequeñas con respuesta esperada.
+
+```bash
+python3 scripts/run_reasoning_tasks.py --model llama3.2:3b
+```
+
+Opciones principales:
+
+```bash
+python3 scripts/run_reasoning_tasks.py \
+  --model llama3.2:3b \
+  --repeat 2 \
+  --temperature 0.2
+```
+
+Los resultados se guardan en:
+
+```text
+results/005-reasoning-tasks/
+```
+
 ## Inspección de modelos
 
 Guardar información de `ollama show <modelo>`:
