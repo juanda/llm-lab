@@ -141,6 +141,28 @@ Los resultados se guardan en:
 results/001-anatomia-llm/
 ```
 
+### 002-generation-controls
+
+Controles principales de generación: longitud, sampling, penalización de repetición y stop sequences.
+
+```bash
+python3 scripts/run_generation_controls.py --model llama3.2:3b
+```
+
+Opciones principales:
+
+```bash
+python3 scripts/run_generation_controls.py \
+  --model llama3.2:3b \
+  --repeat 2
+```
+
+Los resultados se guardan en:
+
+```text
+results/002-generation-controls/
+```
+
 ### 003-context
 
 Este experimento pertenece al módulo 3, Contexto y Memoria. Se documenta aquí porque ya existe un script asociado, pero no debe tratarse como parte del módulo 0.

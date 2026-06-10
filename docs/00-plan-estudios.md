@@ -29,3 +29,4 @@ Cada módulo debe contener:
 
 - [00-preparacion-laboratorio](modules/00-preparacion-laboratorio.md)
 - [01-anatomia-llm](modules/01-anatomia-llm.md)
+- [02-generacion](modules/02-generacion.md)
