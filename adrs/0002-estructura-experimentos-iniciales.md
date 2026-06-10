@@ -1,5 +1,7 @@
 # ADR-0002
 
+Estado: reemplazada por ADR-0005.
+
 ## Decisión
 
 Organizar los primeros experimentos como carpetas numeradas en `experiments/` y guardar las ejecuciones como JSONL en `results/`.

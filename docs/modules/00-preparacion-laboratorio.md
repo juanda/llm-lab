@@ -295,7 +295,7 @@ Este ejemplo no debe interpretarse como formato universal. Un modelo puede usar 
 
 Hipótesis asociada: si dos modelos usan templates distintos, el mismo prompt visible puede convertirse en prompts reales distintos.
 
-Experimento asociado: `experiments/000-template-vs-raw/`.
+Experimento asociado: `000-template-vs-raw`, documentado en la sección `## Experimentos` de este módulo.
 
 Observación esperada: en modo normal, una respuesta puede parecer conversación de asistente; en modo raw, puede parecer más una continuación textual.
 
@@ -509,11 +509,22 @@ Un experimento reproducible debe declarar:
 
 Observa el comportamiento básico de generación como proceso iterativo y compara dos variantes de entrada: modo normal con plantilla de chat y modo raw sin plantilla de chat.
 
-Ruta:
+Preguntas:
 
 ```text
-experiments/000-next-token/
+¿Qué se observa cuando un LLM genera una respuesta corta paso a paso?
+¿Por qué dos modelos generan continuaciones radicalmente distintas para el mismo prompt visible?
+¿Por qué el mismo modelo parece comportarse como modelos distintos cuando cambia el contexto?
+¿Hasta qué punto cambia el comportamiento al modificar únicamente la secuencia de entrada?
 ```
+
+Hipótesis: un LLM genera texto prediciendo sucesivamente el siguiente token. El texto final emerge de una cadena de decisiones locales de generación. Dos modelos pueden producir secuencias distintas ante el mismo prompt visible porque el prompt real recibido por cada modelo puede no ser idéntico. Para el Transformer no existen modos internos como chat o raw; esos nombres describen cómo Ollama construye la secuencia de tokens de entrada.
+
+Variables:
+
+- variable independiente: prompt simple;
+- variables controladas: modelo, `temperature`, `num_predict` y modo de generación;
+- variables observadas: fragmentos generados, texto final, métricas de Ollama, tiempo de pared y diferencia entre modo normal y modo raw.
 
 Script:
 
@@ -526,7 +537,9 @@ Experimento A, modo normal:
 ```bash
 python3 scripts/run_next_token.py \
   --model llama3.2:3b \
-  --prompt "El cielo es"
+  --prompt "El cielo es" \
+  --num-predict 12 \
+  --temperature 0.2
 ```
 
 Objetivo: observar la generación cuando Ollama aplica la plantilla del modelo.
@@ -537,6 +550,8 @@ Experimento B, modo raw:
 python3 scripts/run_next_token.py \
   --model llama3.2:3b \
   --prompt "El cielo es" \
+  --num-predict 12 \
+  --temperature 0.2 \
   --raw
 ```
 
@@ -549,6 +564,8 @@ Resultado esperado:
 - métricas finales reportadas por Ollama;
 - una primera intuición experimental de que el texto se construye paso a paso.
 - la variante usada (`template_chat` o `raw`) registrada en cada JSONL.
+- `raw` registrado como `false` o `true`;
+- `chunks`, `eval_count` y `response`, cuando Ollama informe esas métricas.
 
 Nota: Ollama permite observar la generación en streaming, pero no expone necesariamente los IDs exactos de cada token en la API usada aquí. Por eso este experimento registra pasos incrementales de salida textual y métricas de token cuando el runtime las informa.
 
@@ -576,21 +593,54 @@ Registrar:
 - respuesta final;
 - diferencias observadas entre modelos;
 - diferencias observadas entre modo normal y modo raw.
+- si la respuesta parece una continuación textual o una respuesta de asistente;
+- qué secuencia real de entrada pudo haber construido Ollama en cada caso.
+
+Tabla de registro:
+
+| Modelo | Modo | Tokens generados (`eval_count`) | Respuesta final | Diferencias observadas |
+| --- | --- | --- | --- | --- |
+| Qwen2.5-Coder | normal | | | |
+| Qwen2.5-Coder | raw | | | |
+| Llama 3.2 | normal | | | |
+| Llama 3.2 | raw | | | |
+
+Observación experimental registrada:
+
+- caso A: `qwen2.5-coder:3b`, prompt visible `El cielo es`, modo normal con chat template, resultado cualitativo de asistente conversacional;
+- caso B: `qwen2.5-coder:3b`, prompt visible `El cielo es`, modo raw con `"raw": true`, resultado cualitativo de continuación textual de la frase.
+
+Interpretación: no existen dos modelos ni dos mecanismos internos. Existen dos secuencias de entrada distintas. En raw, la secuencia se aproxima a `El cielo es`; en chat, Ollama construye una secuencia con roles, template y posible system prompt antes de pedir al mismo modelo que prediga el siguiente token.
 
 ### 000-template-vs-raw
 
 Compara explícitamente el efecto de la plantilla de chat frente al modo raw en dos modelos locales.
 
-Ruta:
+Pregunta: ¿por qué dos modelos generan respuestas radicalmente distintas para el mismo prompt visible?
 
-```text
-experiments/000-template-vs-raw/
-```
+Hipótesis: dos modelos pueden producir respuestas distintas ante el mismo prompt visible porque el prompt real recibido por cada modelo puede incluir chat templates, system prompts, tokens especiales, stop tokens y parámetros diferentes.
+
+Variables:
+
+- variable independiente: modo de generación (`template_chat` o `raw`);
+- variables controladas: prompt, `temperature`, `num_predict` y runtime local;
+- variables comparadas: modelo (`qwen2.5-coder:3b`, `llama3.2:3b`);
+- variables observadas: tokens generados reportados por Ollama, respuesta final, latencia y diferencias cualitativas.
 
 Script:
 
 ```bash
 python3 scripts/run_template_vs_raw.py
+```
+
+Ejecución explícita:
+
+```bash
+python3 scripts/run_template_vs_raw.py \
+  --models qwen2.5-coder:3b llama3.2:3b \
+  --prompt "El cielo es" \
+  --num-predict 24 \
+  --temperature 0.2
 ```
 
 Modelos por defecto:
@@ -608,8 +658,10 @@ Resultado esperado:
 
 - un archivo JSONL en `results/000-template-vs-raw/`;
 - un registro por modelo y variante;
+- `model`, `variant`, `raw`, `prompt` y `options`;
 - `eval_count` cuando Ollama lo informe;
 - respuesta final;
+- métricas de duración reportadas por Ollama;
 - comparación entre `template_chat` y `raw`.
 
 Antes de interpretar los resultados, inspeccionar la configuración de los modelos:
@@ -623,20 +675,45 @@ Hipótesis: si el modo normal y el modo raw producen salidas distintas para el m
 
 Conclusión esperada: el experimento no decide qué modelo es mejor. Delimita qué parte de la observación pertenece al sistema completo de inferencia.
 
+Registro:
+
+| Modelo | Modo | Tokens generados (`eval_count`) | Respuesta final | Diferencias observadas |
+| --- | --- | --- | --- | --- |
+| `qwen2.5-coder:3b` | `template_chat` | | | |
+| `qwen2.5-coder:3b` | `raw` | | | |
+| `llama3.2:3b` | `template_chat` | | | |
+| `llama3.2:3b` | `raw` | | | |
+
+Anotar si la salida parece una continuación textual o una respuesta de asistente, si cambia el idioma, si la respuesta se detiene por un stop token, si `eval_count` difiere entre modo chat y raw, y qué diferencias aparecen en los Modelfiles.
+
 ### 001-temperature
 
 Evalúa cómo cambia la variabilidad de las respuestas al modificar `temperature`.
 
-Ruta:
+Pregunta: ¿cómo cambia la variabilidad de las respuestas cuando se modifica `temperature` manteniendo fijo el prompt?
 
-```text
-experiments/001-temperature/
-```
+Hipótesis: con temperaturas bajas, las respuestas serán más parecidas entre repeticiones. Con temperaturas altas, aumentarán las diferencias de vocabulario, estructura y contenido.
+
+Variables:
+
+- variable independiente: `temperature`;
+- variables controladas: modelo, prompt, `num_predict` y número de repeticiones;
+- variables observadas: texto generado, longitud de respuesta, tiempo de generación y métricas reportadas por Ollama.
 
 Script:
 
 ```bash
 python3 scripts/run_temperature.py --model llama3.2:3b
+```
+
+Opciones útiles:
+
+```bash
+python3 scripts/run_temperature.py \
+  --model llama3.2:3b \
+  --temperatures 0.0 0.3 0.7 1.0 \
+  --repeat 3 \
+  --num-predict 160
 ```
 
 Resultado esperado:
@@ -645,15 +722,21 @@ Resultado esperado:
 - varias respuestas para el mismo prompt;
 - metadatos con modelo, temperatura, repetición y métricas de Ollama.
 
+Anotar la temperatura usada, el modelo, si se observó más diversidad con temperaturas altas y si hubo respuestas fuera de formato. La conclusión debe mencionar solo lo observado con el modelo, prompt y parámetros usados.
+
 ### 002-performance
 
 Mide latencia y throughput de generación con un conjunto pequeño de prompts controlados.
 
-Ruta:
+Pregunta: ¿qué latencia y throughput se observan al generar texto con un modelo local en Ollama?
 
-```text
-experiments/002-performance/
-```
+Hipótesis: la primera petición puede ser más lenta por carga del modelo. Para un mismo modelo y hardware, respuestas más largas tenderán a requerir más tiempo total.
+
+Variables:
+
+- variables independientes: prompt, `num_predict` y repetición;
+- variables controladas: modelo, runtime y máquina local;
+- variables observadas: `wall_time_seconds`, `total_duration_ns`, `eval_count`, `eval_duration_ns` y `tokens_per_second`.
 
 Script:
 
@@ -661,11 +744,22 @@ Script:
 python3 scripts/run_performance.py --model llama3.2:3b
 ```
 
+Opciones útiles:
+
+```bash
+python3 scripts/run_performance.py \
+  --model llama3.2:3b \
+  --repeat 5 \
+  --num-predict 200
+```
+
 Resultado esperado:
 
 - un archivo JSONL en `results/002-performance/`;
 - mediciones por prompt y repetición;
 - `tokens_per_second` cuando Ollama informe `eval_count` y `eval_duration`.
+
+Anotar el modelo usado, hardware, si la primera ejecución fue más lenta y si hubo variación fuerte entre repeticiones. No comparar contra otros equipos salvo que se hayan igualado modelo, parámetros y condiciones de ejecución.
 
 ### Experimento aplazado: 003-context
 
@@ -686,7 +780,7 @@ Durante la ejecución se deben anotar observaciones como:
 - si una diferencia parece explicarse por template, system prompt, modo raw, alineamiento o comportamiento instruct.
 - si el mismo modelo cambia de comportamiento al pasar de modo chat a modo raw.
 
-Las observaciones deben quedar en los `README.md` de cada experimento o junto a los archivos generados en `results/`.
+Las observaciones deben quedar en la sección `## Experimentos` del módulo correspondiente o junto a los archivos generados en `results/`.
 
 ## Conclusiones
 

@@ -18,7 +18,6 @@ Laboratorio experimental para comprender los LLM mediante experimentación prác
 
 ## Estructura
 - docs/
-- experiments/
 - notebooks/
 - datasets/
 - results/

@@ -550,6 +550,16 @@ Registro mínimo:
 - tokens aproximados, solo si se dispone de una herramienta externa fiable;
 - diferencias observadas.
 
+Tabla de registro:
+
+| Texto | Modelo | `prompt_eval_count` | Tokens aproximados | Observaciones |
+| --- | --- | --- | --- | --- |
+| El cielo es azul. | | | | |
+| LearningML | | | | |
+| inteligencia artificial | | | | |
+| def fibonacci(n): | | | | |
+| ¡Hola! ¿Qué tal? | | | | |
+
 Limitación: los scripts actuales de Ollama registran conteos (`prompt_eval_count`), pero no tokens exactos. La inspección exacta se deja para una actividad posterior con tokenizers específicos.
 
 ### 001B - Parámetros del modelo
@@ -579,6 +589,14 @@ Registrar:
 - embedding length;
 - cuantización;
 - capacidades.
+
+Tabla de registro:
+
+| Modelo | Arquitectura | Parámetros | Context length | Embedding length | Cuantización | Capacidades |
+| --- | --- | --- | --- | --- | --- | --- |
+| `qwen2.5-coder:0.5b` | | | | | | |
+| `qwen2.5-coder:3b` | | | | | | |
+| `llama3.2:3b` | | | | | | |
 
 ### 001C - Mismo prompt, modelos de distinto tamaño
 
@@ -612,6 +630,16 @@ Registrar:
 - tiempo de pared;
 - `eval_count`, si Ollama lo informa;
 - `tokens_per_second`, si puede calcularse.
+
+Tabla de registro:
+
+| Modelo | Respuesta | Longitud | Claridad observada | Tiempo | `eval_count` |
+| --- | --- | --- | --- | --- | --- |
+| `qwen2.5-coder:0.5b` | | | | | |
+| `qwen2.5-coder:3b` | | | | | |
+| `llama3.2:3b` | | | | | |
+
+La claridad es una observación cualitativa. Debe justificarse con criterios concretos: exactitud, concisión, ausencia de contradicciones y adecuación al prompt.
 
 ### 001D - Autoregresión observada
 
@@ -653,7 +681,29 @@ Registro mínimo:
 - respuesta final;
 - `prompt_eval_count`;
 - `eval_count`;
-- diferencia entre prompt visible y prompt real inferido.
+- diferencias entre modo chat/template y raw;
+- diferencia entre prompt visible y prompt real inferido;
+- diferencia entre una predicción local de token y la respuesta completa acumulada.
+
+Nota metodológica:
+
+```text
+raw != modo interno diferente
+```
+
+Cuando se usa `raw=true`, Ollama construye una secuencia de entrada más directa. El modelo sigue haciendo lo mismo: recibe tokens y predice el siguiente token.
+
+Los scripts guardan resultados de este módulo en:
+
+```text
+results/001-anatomia-llm/
+```
+
+Archivos esperados:
+
+- inventario de modelos en JSONL;
+- comparación de respuestas en JSONL;
+- notas manuales sobre tokenización si se usan herramientas externas.
 
 ## Observaciones
 
