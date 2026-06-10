@@ -30,3 +30,4 @@ Laboratorio experimental para comprender los LLM mediante experimentación prác
 - [00 - Preparación del laboratorio](docs/modules/00-preparacion-laboratorio.md)
 - [01 - Anatomía de un LLM](docs/modules/01-anatomia-llm.md)
 - [02 - Generación de texto](docs/modules/02-generacion.md)
+- [03 - Contexto y memoria](docs/modules/03-contexto.md)
